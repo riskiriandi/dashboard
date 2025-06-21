@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>BOT.MR.G Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="judul">BOT.MR.G</div>
+  </header>
+  <main>
+    <!-- Panel Kontrol Utama -->
+    <section class="panel" id="panel-utama">
+      <div class="panel-title">Panel Kontrol Utama</div>
+      <div class="actions">
+        <button id="mainStartBtn" class="btn start">START</button>
+        <button id="mainOnOffBtn" class="btn off">OFF</button>
+        <span id="mainIndicator" class="indicator off" title="Status"></span>
+        <span id="mainStatus" class="status-label">MATI</span>
+      </div>
+    </section>
+    <!-- Panel bot.v1 -->
+    <section class="panel-botv1">
+      <div class="panel-title">bot.v1</div>
+      <div class="actions-botv1">
+        <button id="botv1Btn" class="btn-botv1 stop">START</button>
+        <span id="botv1Indicator" class="indicator-botv1 stop" title="Status"></span>
+        <span id="botv1Status" class="status-botv1">STOP</span>
+      </div>
+    </section>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
