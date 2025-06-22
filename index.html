@@ -30,7 +30,24 @@
         <span id="botv1Status" class="status-botv1">STOP</span>
       </div>
     </section>
+
+    <!-- Panel Monitor (TV) Real-Time -->
+    <section class="monitor-panel">
+      <div id="tv-frame">
+        <div id="tv-screen" class="off">
+          <span id="monitor-status">OFF</span>
+          <video id="monitor-video" autoplay muted loop style="display:none"></video>
+          <img id="monitor-img" style="display:none"/>
+        </div>
+      </div>
+      <div class="tv-controls">
+        <button id="btn-onoff">ON</button>
+        <button id="btn-start" disabled>START</button>
+      </div>
+    </section>
+    <!-- Akhir Panel Monitor -->
+
   </main>
   <script src="script.js"></script>
 </body>
-</html>
+  </html>
