@@ -556,4 +556,45 @@ Mau gw tunjukin code anti-detection techniques? 🛡️
 
 ---
 
+**User**: nah kata lu di github ad yg pernah scraping shinigami jg itu bisa di liat di make kode apa dan cara dia scraping ny
+
+**Assistant**: **Iya betul!** Berdasarkan yang gw liat di **AzwarKusumah/ryukoapi-shinigami**, dia pake:
+
+**Tech stack dia:**
+- **Node.js + Express** (backend)
+- **Axios** (HTTP requests)
+- **Cheerio** (HTML parsing, jQuery-like)
+- **Simple routing** structure
+
+**Method scraping dia:**
+1. **Direct HTTP requests** ke shinigami endpoints
+2. **HTML parsing** pake Cheerio (extract data dari DOM)
+3. **Simple anti-detection:**
+   - Basic user-agent headers
+   - Request delays
+   - Clean response formatting
+
+**Endpoint structure dia:**
+- `/api/home` - Homepage manga list
+- `/api/project/page/:page` - Pagination
+- `/api/search/:query/page/:page` - Search function
+- `/api/series/:endpoint` - Detail manga
+- `/api/series/:endpoint/:chapter` - Chapter content
+
+**Kelebihan approach dia:**
+- ✅ **Simple & reliable**
+- ✅ **Lightweight** (gak butuh browser automation)
+- ✅ **Fast response** time
+
+**Yang bisa kita improve:**
+- Better anti-detection (rotating user-agents)
+- Error handling yang lebih robust
+- Caching mechanism
+
+**Basically dia proven concept** - shinigami bisa di-scrape pake method simple!
+
+Mau gw bikin versi improved dari approach dia? 🚀
+
+---
+
 ## Chat History Will Continue Here...
