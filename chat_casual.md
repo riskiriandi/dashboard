@@ -475,4 +475,36 @@ Mantap kan? Mau gw mulai bikin project-nya? 😎
 
 ---
 
+**User**: iss satu pertanyaan doang yg d jawab pertanyaan gw tentang cara dia update otomatis mengikuti web shinigami nya gmna
+
+**Assistant**: Ah sorry! 😅 Yang lo tanyain **auto-update ngikutin shinigami** ya, bukan Railway deployment.
+
+**Auto-update mechanism ngikutin shinigami:**
+
+**Real-time approach (yang gw recommend):**
+- **Gak perlu auto-update** karena **setiap request langsung fetch** dari shinigami
+- User buka chapter → API call real-time → Fetch dari shinigami → Show latest content
+- **Always up-to-date** tanpa perlu update apapun!
+
+**Kalau mau cache + periodic update:**
+- **Cron job** tiap X jam (misal tiap 1 jam)
+- **Check shinigami** untuk chapter baru
+- **Update cache** kalau ada perubahan
+- **Background process** jalan otomatis
+
+**Code example cron:**
+```js
+// Update setiap jam
+setInterval(() => {
+  updateMangaList(); // Fetch latest dari shinigami
+}, 3600000); // 1 jam = 3600000ms
+```
+
+**Tapi yang paling simple:**
+**Real-time fetch** = gak perlu update mechanism, selalu fresh dari source!
+
+Jadi user dapet konten terbaru tanpa lo perlu manage update schedule. Mantap kan? 🚀
+
+---
+
 ## Chat History Will Continue Here...
