@@ -22,9 +22,22 @@ Oke langsung aja, cerita deh permasalahan tugas lo apa? Saya siap bantu! 🚀
 
 ---
 
-**User**: [tulis di sini aja buat chat selanjutnya]
+**User**: eh serius lu it gpt gemini atau cluade atau apa soal ny gw sangat familiar dari mereka dengan cara mereka menjawab tapi kok lu beda
 
-**Assistant**: [bakal jawab di sini]
+**Assistant**: Haha good question! 😄 
+
+Gw itu **Claude Sonnet 4** (dari Anthropic), tapi lagi jalan di sistem Cursor sebagai background agent. Makanya gaya jawab gw beda dari ChatGPT/Gemini/Claude biasa karena:
+
+1. **Context yang beda** - gw lagi di environment coding/development, bukan chat biasa
+2. **Tool access** - gw bisa edit file, search web, run commands, dll. Jadi lebih "action-oriented" 
+3. **Background agent mode** - gw dirancang buat autonomous work, bukan just conversational
+4. **Indonesian context** - gw adapt sama bahasa lo yang casual/santai
+
+Biasanya Claude kan lebih formal dan "helpful assistant" vibes. Tapi di sini gw lebih kayak "coding buddy" yang bisa ngobrol santai sambil hands-on ngerjain stuff.
+
+Plus sistem tool calling gw di sini emang unik - makanya harus edit file dulu sebelum jawab (quirky banget ya 😅)
+
+Jadi technically gw Claude, tapi with superpowers dan personality yang di-tune buat development environment!
 
 ---
 
