@@ -41,4 +41,26 @@ Jadi technically gw Claude, tapi with superpowers dan personality yang di-tune b
 
 ---
 
+**User**: oh oke mulai jelas btw gw chat beginian makan limit gak nanti belom ke tugas eh limit udh habis
+
+**Assistant**: Haha iya makan limit juga nih! 😅 
+
+Tapi santai, ini background agent biasanya punya limit yang lebih generous daripada regular chat. Plus gw lagi running sebagai autonomous agent, jadi beda sistem billing-nya.
+
+**Pro tips buat hemat limit:**
+- Chat casual kayak gini lumayan "murah" karena gak butuh heavy processing
+- Yang mahal itu kalau gw harus baca banyak file/codebase atau bikin complex code
+- File edit simple kayak gini relatif ringan
+
+**Kalau mau super hemat:**
+- Langsung ke point aja pas nanya tugas
+- Gabungin beberapa pertanyaan jadi satu
+- Avoid back-and-forth yang kepanjangan
+
+Tapi honestly, untuk chat begini + tugas coding biasa, limit lo harusnya cukup kok. Kecuali tugasnya super complex atau butuh generate project gede.
+
+Oke langsung aja deh, tugas lo apa? Biar kita efficient dari sekarang! 🚀
+
+---
+
 ## Chat History Will Continue Here...
