@@ -242,4 +242,40 @@ Mau lanjut bikin project di Vercel? 🚀
 
 ---
 
+**User**: nah make 2 itu udh otomatis jalan gak perlu development dan heavy scraping?
+
+**Assistant**: Hmm, **Vercel & Netlify ada limitasi** buat heavy scraping continuous! 😅
+
+**Problem dengan serverless (Vercel/Netlify):**
+- ❌ **Function timeout** (max 10-60 detik per request)
+- ❌ **No background jobs** (gak bisa cron jobs 24/7)
+- ❌ **Cold start** (delay pas bangun dari sleep)
+- ❌ **Request limits** (bisa kena rate limit kalo scraping heavy)
+
+**Solusi yang lebih cocok buat auto-scraping:**
+
+**1. Railway (Best choice!)** 
+- ✅ **Always-on containers** (bukan serverless)
+- ✅ **Background cron jobs** bisa jalan terus
+- ✅ **$5 credit/month** cukup buat small mirror
+- ✅ **No timeout limits**
+
+**2. Render**
+- ✅ **Background workers** support
+- ✅ **750 jam/month** (25 hari full uptime)
+- ✅ **Cron jobs** bisa jalan
+
+**3. Koyeb**
+- ✅ **Always-on** containers
+- ✅ **2 apps gratis**
+
+**Rekomendasi final buat auto-mirror:**
+**Railway + Freenom domain** = Perfect buat continuous scraping & auto-update!
+
+Railway itu basically mini-VPS gratis yang bisa jalan 24/7 tanpa ribet serverless limitations.
+
+Mau setup di Railway? 🚀
+
+---
+
 ## Chat History Will Continue Here...
