@@ -1,97 +1,192 @@
 const express = require('express');
-const cheerio = require('cheerio');
-const { smartRequest, SCRAPER_CONFIG, proxyImageUrl } = require('../config/scraper');
-
 const router = express.Router();
+const { 
+    getChapterDetail, 
+    getChapterList,
+    formatImageUrl,
+    CHAPTER_CDN 
+} = require('../config/scraper');
 
-// Get chapter content
+// Get chapter content with images
 router.get('/:manga/:chapter', async (req, res) => {
-  try {
-    const { manga, chapter } = req.params;
-    const chapterUrl = `${SCRAPER_CONFIG.BASE_URL}/${manga}/${chapter}`;
-    
-    const response = await smartRequest(chapterUrl);
-    const $ = cheerio.load(response.data);
-    
-    // Extract chapter info
-    const chapterTitle = $('h1, .chapter-title, .entry-title').text().trim();
-    const mangaTitle = $('.manga-title, .series-title').text().trim();
-    
-    // Extract chapter images
-    const images = [];
-    $('.chapter-images img, .entry-content img, .reader-content img').each((i, element) => {
-      const $img = $(element);
-      let imgSrc = $img.attr('src') || $img.attr('data-src') || $img.attr('data-lazy-src');
-      
-      if (imgSrc) {
-        images.push({
-          page: i + 1,
-          url: proxyImageUrl(imgSrc),
-          alt: `Page ${i + 1}`
+    try {
+        const { manga, chapter } = req.params;
+        console.log(`Fetching chapter: ${manga}/${chapter}`);
+        
+        // For URL compatibility, chapter param might be chapter ID
+        const chapterId = chapter;
+        
+        const response = await getChapterDetail(chapterId);
+        
+        if (response && response.data) {
+            const chapterData = response.data;
+            
+            // Format chapter images
+            const images = [];
+            if (chapterData.images && Array.isArray(chapterData.images)) {
+                chapterData.images.forEach((image, index) => {
+                    let imageUrl = image;
+                    
+                    // If image is object with URL property
+                    if (typeof image === 'object' && image.url) {
+                        imageUrl = image.url;
+                    }
+                    
+                    // If not full URL, construct using CDN pattern
+                    if (!imageUrl.startsWith('http')) {
+                        // Pattern: delivery.shngm.id/chapter/manga_{manga_id}/chapter_{chapter_id}/{page}-{hash}.jpg
+                        imageUrl = `${CHAPTER_CDN}/chapter/manga_${manga}/chapter_${chapterId}/${index + 1}-${imageUrl}`;
+                    }
+                    
+                    images.push({
+                        url: imageUrl,
+                        alt: `Page ${index + 1}`,
+                        page: index + 1
+                    });
+                });
+            }
+            
+            // Get navigation info (previous/next chapters)
+            let navigation = { prev: null, next: null };
+            
+            try {
+                // Try to get chapter list to find prev/next
+                const chaptersResponse = await getChapterList(manga, 1, 100);
+                if (chaptersResponse && chaptersResponse.data) {
+                    const chapters = chaptersResponse.data;
+                    const currentIndex = chapters.findIndex(ch => ch.id === chapterId);
+                    
+                    if (currentIndex > 0) {
+                        navigation.prev = `/manga/${manga}/chapter/${chapters[currentIndex - 1].id}`;
+                    }
+                    if (currentIndex < chapters.length - 1) {
+                        navigation.next = `/manga/${manga}/chapter/${chapters[currentIndex + 1].id}`;
+                    }
+                }
+            } catch (navError) {
+                console.warn('Navigation error:', navError.message);
+            }
+            
+            const formattedChapter = {
+                id: chapterData.id,
+                title: chapterData.title || `Chapter ${chapterData.chapter_number || chapter}`,
+                manga: manga,
+                chapter: chapter,
+                chapterNumber: chapterData.chapter_number,
+                images: images,
+                navigation: navigation,
+                totalPages: images.length,
+                createdAt: chapterData.created_at,
+                updatedAt: chapterData.updated_at
+            };
+            
+            res.json({
+                success: true,
+                data: formattedChapter
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                error: 'Chapter not found or no images available'
+            });
+        }
+    } catch (error) {
+        console.error(`Chapter error for ${req.params.manga}/${req.params.chapter}:`, error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch chapter',
+            message: error.message
         });
-      }
-    });
-    
-    // Extract navigation
-    const prevChapter = $('.prev-chapter, .nav-previous a').attr('href');
-    const nextChapter = $('.next-chapter, .nav-next a').attr('href');
-    
-    const chapterData = {
-      title: chapterTitle,
-      mangaTitle,
-      images,
-      totalPages: images.length,
-      navigation: {
-        prev: prevChapter ? prevChapter.replace(SCRAPER_CONFIG.BASE_URL, '') : null,
-        next: nextChapter ? nextChapter.replace(SCRAPER_CONFIG.BASE_URL, '') : null
-      }
-    };
-    
-    res.json({
-      success: true,
-      data: chapterData
-    });
-    
-  } catch (error) {
-    console.error('Error fetching chapter:', error.message);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch chapter content'
-    });
-  }
+    }
 });
 
-// Image proxy endpoint to bypass hotlink protection
-router.get('/proxy/image', async (req, res) => {
-  try {
-    const imageUrl = decodeURIComponent(req.query.url);
-    
-    if (!imageUrl) {
-      return res.status(400).json({ error: 'URL parameter required' });
+// Get chapter list for a manga
+router.get('/:manga', async (req, res) => {
+    try {
+        const manga = req.params.manga;
+        const page = parseInt(req.query.page) || 1;
+        const pageSize = parseInt(req.query.page_size) || 24;
+        
+        console.log(`Fetching chapter list for: ${manga}`);
+        
+        const response = await getChapterList(manga, page, pageSize);
+        
+        if (response && response.data) {
+            const chapters = response.data.map(chapter => ({
+                id: chapter.id,
+                title: chapter.title || `Chapter ${chapter.chapter_number}`,
+                url: `/manga/${manga}/chapter/${chapter.id}`,
+                number: chapter.chapter_number,
+                date: chapter.created_at || chapter.published_at,
+                views: chapter.views,
+                mangaId: manga
+            }));
+            
+            res.json({
+                success: true,
+                data: {
+                    manga: manga,
+                    chapters: chapters,
+                    totalChapters: response.total || chapters.length,
+                    page: page,
+                    pageSize: pageSize,
+                    hasNext: chapters.length === pageSize
+                }
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                error: 'No chapters found for this manga'
+            });
+        }
+    } catch (error) {
+        console.error(`Chapter list error for ${req.params.manga}:`, error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch chapter list',
+            message: error.message
+        });
     }
-    
-    const response = await smartRequest(imageUrl, {
-      responseType: 'stream',
-      headers: {
-        'Referer': SCRAPER_CONFIG.BASE_URL,
-        'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8'
-      }
-    });
-    
-    // Set appropriate headers
-    res.set({
-      'Content-Type': response.headers['content-type'] || 'image/jpeg',
-      'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
-      'Access-Control-Allow-Origin': '*'
-    });
-    
-    // Pipe the image
-    response.data.pipe(res);
-    
-  } catch (error) {
-    console.error('Error proxying image:', error.message);
-    res.status(404).json({ error: 'Image not found' });
-  }
+});
+
+// Get specific chapter by ID only
+router.get('/detail/:chapterId', async (req, res) => {
+    try {
+        const chapterId = req.params.chapterId;
+        console.log(`Fetching chapter detail: ${chapterId}`);
+        
+        const response = await getChapterDetail(chapterId);
+        
+        if (response && response.data) {
+            const chapterData = response.data;
+            
+            res.json({
+                success: true,
+                data: {
+                    id: chapterData.id,
+                    title: chapterData.title,
+                    chapterNumber: chapterData.chapter_number,
+                    mangaId: chapterData.manga_id,
+                    images: chapterData.images || [],
+                    createdAt: chapterData.created_at,
+                    updatedAt: chapterData.updated_at,
+                    views: chapterData.views
+                }
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                error: 'Chapter not found'
+            });
+        }
+    } catch (error) {
+        console.error(`Chapter detail error for ${req.params.chapterId}:`, error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch chapter detail',
+            message: error.message
+        });
+    }
 });
 
 module.exports = router;

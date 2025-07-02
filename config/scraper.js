@@ -1,120 +1,182 @@
 const axios = require('axios');
-const UserAgent = require('user-agents');
 
-// Anti-detection configuration
-const SCRAPER_CONFIG = {
-  // Base URL for shinigami
-  BASE_URL: 'https://05.shinigami.asia',
-  
-  // Request delays (randomized)
-  MIN_DELAY: 500,
-  MAX_DELAY: 2000,
-  
-  // Timeout settings
-  TIMEOUT: 10000,
-  
-  // Retry attempts
-  MAX_RETRIES: 3
+// Real API configuration from HTTP Canary data
+const BASE_URL = 'https://api.shngm.io/v1';
+const IMAGE_CDN = 'https://storage.shngm.id';
+const CHAPTER_CDN = 'https://delivery.shngm.id';
+const DELAY_MIN = 500;
+const DELAY_MAX = 2000;
+const MAX_RETRIES = 3;
+
+// Headers from HTTP Canary
+const getHeaders = () => ({
+    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Mobile Safari/537.36',
+    'Sec-CH-UA': '"Not(A:Brand";v="99", "Google Chrome";v="133", "Chromium";v="133"',
+    'Accept': 'application/json, text/plain, */*',
+    'Accept-Language': 'en-US,en;q=0.9,id;q=0.8',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Referer': 'https://06.shinigami.asia/',
+    'Origin': 'https://06.shinigami.asia',
+    'Sec-Fetch-Dest': 'empty',
+    'Sec-Fetch-Mode': 'cors',
+    'Sec-Fetch-Site': 'cross-site',
+    'Connection': 'keep-alive'
+});
+
+// Random delay function
+const randomDelay = () => {
+    const delay = Math.floor(Math.random() * (DELAY_MAX - DELAY_MIN + 1)) + DELAY_MIN;
+    return new Promise(resolve => setTimeout(resolve, delay));
 };
 
-// User agents pool (from HTTP Canary findings + proven ones)
-const USER_AGENTS = [
-  'Mozilla/5.0 (Linux; Android 13; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
-  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-];
-
-// Get random user agent
-const getRandomUserAgent = () => {
-  return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
-};
-
-// Get random delay
-const getRandomDelay = () => {
-  return Math.floor(Math.random() * (SCRAPER_CONFIG.MAX_DELAY - SCRAPER_CONFIG.MIN_DELAY + 1)) + SCRAPER_CONFIG.MIN_DELAY;
-};
-
-// Sleep function
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Create axios instance with anti-detection headers
+// Create axios instance with proper headers
 const createAxiosInstance = () => {
-  return axios.create({
-    timeout: SCRAPER_CONFIG.TIMEOUT,
-    headers: {
-      'User-Agent': getRandomUserAgent(),
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-      'Accept-Language': 'en-US,en;q=0.9,id;q=0.8',
-      'Accept-Encoding': 'gzip, deflate, br',
-      'Connection': 'keep-alive',
-      'Upgrade-Insecure-Requests': '1',
-      'Sec-Fetch-Dest': 'document',
-      'Sec-Fetch-Mode': 'navigate',
-      'Sec-Fetch-Site': 'none',
-      'Cache-Control': 'max-age=0',
-      'DNT': '1'
-    }
-  });
+    return axios.create({
+        timeout: 15000,
+        headers: getHeaders()
+    });
 };
 
-// Smart request function with retry and delay
+// Smart request function with retry logic
 const smartRequest = async (url, options = {}) => {
-  let lastError;
-  
-  for (let attempt = 1; attempt <= SCRAPER_CONFIG.MAX_RETRIES; attempt++) {
-    try {
-      // Random delay before request
-      await sleep(getRandomDelay());
-      
-      const axiosInstance = createAxiosInstance();
-      const response = await axiosInstance.get(url, options);
-      
-      // Success
-      return response;
-      
-    } catch (error) {
-      lastError = error;
-      console.warn(`Attempt ${attempt} failed for ${url}:`, error.message);
-      
-      // If it's the last attempt, throw the error
-      if (attempt === SCRAPER_CONFIG.MAX_RETRIES) {
-        throw lastError;
-      }
-      
-      // Wait longer before retry
-      await sleep(getRandomDelay() * attempt);
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            if (attempt > 1) {
+                console.log(`Retry attempt ${attempt} for: ${url}`);
+                await randomDelay();
+            }
+
+            const axiosInstance = createAxiosInstance();
+            const response = await axiosInstance.get(url, options);
+            
+            // Add delay between requests
+            await randomDelay();
+            
+            return response;
+        } catch (error) {
+            console.error(`Attempt ${attempt} failed for ${url}:`, error.message);
+            
+            if (attempt === MAX_RETRIES) {
+                throw new Error(`Failed after ${MAX_RETRIES} attempts: ${error.message}`);
+            }
+            
+            // Exponential backoff
+            await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+        }
     }
-  }
 };
 
-// Proxy image URL to bypass hotlink protection
-const proxyImageUrl = (originalUrl, req) => {
-  if (!originalUrl) return '';
-  
-  // If it's already a full URL, proxy it
-  if (originalUrl.startsWith('http')) {
-    const encodedUrl = encodeURIComponent(originalUrl);
-    return `/api/proxy/image?url=${encodedUrl}`;
-  }
-  
-  // If it's a relative URL, make it absolute then proxy
-  const fullUrl = originalUrl.startsWith('/') 
-    ? `${SCRAPER_CONFIG.BASE_URL}${originalUrl}`
-    : `${SCRAPER_CONFIG.BASE_URL}/${originalUrl}`;
-  
-  const encodedUrl = encodeURIComponent(fullUrl);
-  return `/api/proxy/image?url=${encodedUrl}`;
+// Get manga list (mirror content only)
+const getMangaList = async (page = 1, pageSize = 24) => {
+    const url = `${BASE_URL}/manga/list?type=mirror&page=${page}&page_size=${pageSize}&is_update=true&sort=latest&sort_order=desc`;
+    console.log(`Fetching manga list: ${url}`);
+    const response = await smartRequest(url);
+    return response.data;
+};
+
+// Get manga detail
+const getMangaDetail = async (mangaId) => {
+    const url = `${BASE_URL}/manga/detail/${mangaId}`;
+    console.log(`Fetching manga detail: ${url}`);
+    const response = await smartRequest(url);
+    return response.data;
+};
+
+// Get chapter list
+const getChapterList = async (mangaId, page = 1, pageSize = 24) => {
+    const url = `${BASE_URL}/chapter/${mangaId}/list?page=${page}&page_size=${pageSize}&sort_by=chapter_number&sort_order=desc`;
+    console.log(`Fetching chapter list: ${url}`);
+    const response = await smartRequest(url);
+    return response.data;
+};
+
+// Get chapter detail
+const getChapterDetail = async (chapterId) => {
+    const url = `${BASE_URL}/chapter/detail/${chapterId}`;
+    console.log(`Fetching chapter detail: ${url}`);
+    const response = await smartRequest(url);
+    return response.data;
+};
+
+// Search manga
+const searchManga = async (query, page = 1, pageSize = 24) => {
+    const url = `${BASE_URL}/manga/search?q=${encodeURIComponent(query)}&type=mirror&page=${page}&page_size=${pageSize}`;
+    console.log(`Searching manga: ${url}`);
+    try {
+        const response = await smartRequest(url);
+        return response.data;
+    } catch (error) {
+        // Fallback to list filter if search endpoint doesn't exist
+        console.log('Search endpoint not found, using list filter');
+        const listResponse = await getMangaList(page, pageSize);
+        if (listResponse.data) {
+            const filtered = listResponse.data.filter(manga => 
+                manga.title && manga.title.toLowerCase().includes(query.toLowerCase())
+            );
+            return { data: filtered, total: filtered.length };
+        }
+        throw error;
+    }
+};
+
+// Format image URL with proper CDN
+const formatImageUrl = (imageUrl, type = 'thumbnail') => {
+    if (!imageUrl) return null;
+    
+    // If already full URL, return as is
+    if (imageUrl.startsWith('http')) return imageUrl;
+    
+    // Build URL based on type
+    if (type === 'cover') {
+        return `${IMAGE_CDN}/thumbnail/cover/${imageUrl}`;
+    } else if (type === 'chapter') {
+        return `${CHAPTER_CDN}/${imageUrl}`;
+    } else {
+        return `${IMAGE_CDN}/low/unsafe/filters:format(webp):quality(70)/thumbnail/image/${imageUrl}`;
+    }
+};
+
+// Format manga data for frontend
+const formatMangaData = (manga) => {
+    return {
+        id: manga.id,
+        title: manga.title || manga.name,
+        url: `/manga/${manga.id}`,
+        image: formatImageUrl(manga.thumbnail || manga.cover_image),
+        latestChapter: manga.latest_chapter?.title || manga.latest_chapter_title,
+        description: manga.description || manga.synopsis,
+        author: manga.author,
+        status: manga.status,
+        genres: manga.genres || [],
+        type: manga.type
+    };
+};
+
+// Format chapter data for frontend
+const formatChapterData = (chapter, mangaId) => {
+    return {
+        id: chapter.id,
+        title: chapter.title || `Chapter ${chapter.chapter_number}`,
+        url: `/manga/${mangaId}/chapter/${chapter.id}`,
+        number: chapter.chapter_number,
+        date: chapter.created_at || chapter.published_at,
+        mangaId: mangaId
+    };
 };
 
 module.exports = {
-  SCRAPER_CONFIG,
-  USER_AGENTS,
-  getRandomUserAgent,
-  getRandomDelay,
-  sleep,
-  createAxiosInstance,
-  smartRequest,
-  proxyImageUrl
+    BASE_URL,
+    IMAGE_CDN,
+    CHAPTER_CDN,
+    smartRequest,
+    getMangaList,
+    getMangaDetail,
+    getChapterList,
+    getChapterDetail,
+    searchManga,
+    formatImageUrl,
+    formatMangaData,
+    formatChapterData,
+    randomDelay,
+    getHeaders
 };
